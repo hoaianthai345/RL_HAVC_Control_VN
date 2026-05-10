@@ -69,6 +69,36 @@ pip install -r requirements.txt
 
 See `experiments_cloud/README_CLOUD_EXPERIMENTS.md` and `experiments_cloud/GPU_SERVER_RUNBOOK_VI.md` for run details.
 
+## Recreate / audit summary tables and figures
+
+The paper reports numbers from the aggregated CSV files in:
+
+```text
+experiments_cloud/results/summary/vietnam_final/
+```
+
+The most important manuscript source table is:
+
+```text
+experiments_cloud/results/summary/vietnam_final/control_summary.csv
+```
+
+Use the tracked summary CSVs to audit the reported manuscript numbers. If raw rollout CSVs are available locally, regenerate LaTeX table fragments and figures with:
+
+```bash
+cd experiments_cloud
+python scripts/latex_tables.py \
+  --input-dir results/raw/run_20260509_152412 \
+  --output-dir ../manuscript_eaai/tables
+
+python scripts/plot_results.py \
+  --input-dir results/raw/run_20260509_152412 \
+  --output-dir ../manuscript_eaai/figures \
+  --plots all
+```
+
+Raw EnergyPlus outputs can be large and are ignored by default; the release keeps the compact summary CSVs needed to check the paper's reported values.
+
 ## Submission status
 
 The repository is arranged so that `manuscript_eaai/` is the single canonical manuscript folder. Generated LaTeX auxiliaries and duplicate submission bundles are ignored; the final PDF and source files are kept.

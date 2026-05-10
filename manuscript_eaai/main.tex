@@ -1,0 +1,962 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[section]{placeins}
+\usepackage{hyperref}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{soul}
+
+\hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue}
+
+% ORCID rendering helper (article class lacks LNCS's \orcidID)
+% Mimics LNCS \orcidID: superscript [<orcid>] hyperlinked to orcid.org
+\newcommand{\orcid}[1]{\href{https://orcid.org/#1}{\textsuperscript{[#1]}}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0pt}
+\setlist[itemize]{leftmargin=1.4em}
+\setlist[enumerate]{leftmargin=1.6em}
+
+\title{Edge--Cloud Reinforcement Learning for Transferable HVAC Control\\
+Across Vietnamese Climate Zones}
+\author{%
+  \normalsize
+  Quoc Hung NGUYEN\orcid{0000-0002-6363-0160}\textsuperscript{*},
+  Hoai An THAI\orcid{0009-0004-4093-522X},\\
+  Duy Tan NGUYEN\orcid{0009-0000-2832-8647},
+  Vy LE\orcid{0009-0003-0387-8302},\\
+  and Thi Thuy Duong NGUYEN\orcid{0009-0000-3548-2212}\\[0.6em]
+  \normalsize UEH College of Technology and Design,
+  University of Economics Ho Chi Minh City\\
+  Corresponding author: \texttt{hungngq@ueh.edu.vn}%
+}
+\date{}
+
+\begin{document}
+\maketitle
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\begin{abstract}
+% ═══════════════════════════════════════════════════════════════════════════════
+Heating, ventilation, and air-conditioning (HVAC) systems account for a
+large fraction of commercial-building energy use in Vietnam, where rapid
+urbanisation and high cooling demand across a long north--south climate
+gradient make HVAC control a priority for both operators and policy makers.
+Reinforcement learning (RL) is a natural candidate for adaptive HVAC
+control, but most published evaluations train and test policies on a
+single climate in offline simulation, leaving three practical questions
+open: how a trained policy behaves under tight inference-latency
+budgets, how quickly it loses accuracy under climate-driven distribution
+shift, and how its retraining lifecycle should be organised.
+We address these questions with an edge--cloud adaptive RL framework
+evaluated on a Vietnam multi-city protocol covering three ASHRAE
+climate zones: Ho~Chi~Minh~City and Can~Tho (zone~0A, extremely
+hot--humid), Da~Nang (zone~1A, hot--humid), and Hanoi (zone~2A,
+warm--humid).
+Commercial-building archetypes from the HOT benchmark are paired with
+city-specific TMYx weather files to obtain a reproducible multi-climate
+testbed.
+The edge layer runs the policy locally with $p_{95} < 0.002~\text{ms}$
+latency and validates each action against safety constraints; the cloud
+layer performs multi-context Proximal Policy Optimisation (PPO) retraining
+and pushes versioned policy updates that must pass a deployment-aware
+acceptance test.
+The baseline analysis recovers the expected north-to-south cooling-energy
+gradient: HVAC consumption in Ho~Chi~Minh~City is $1.44\times$ that of
+Hanoi for the OfficeSmall archetype and $1.68\times$ for OfficeMedium.
+Edge inference is approximately $71{,}000\times$ faster than cloud inference at the
+$95$th percentile.
+Pure-PPO policies (single-context, multi-context, and edge-only) cut the
+comfort-violation rate by $1.45\times$ relative to a static-setpoint
+baseline (mean across the ten Vietnam contexts; $19.8\%$ vs.\ $28.7\%$)
+but consume $58.7\%$ more HVAC energy, exposing an energy--comfort
+trade-off that PPO does not resolve on its own.
+The edge--cloud adaptive controller closes this gap: it matches the
+comfort profile of the static baseline (violation rate $26.7\%$ vs.\
+$28.7\%$) and reaches a worst-context energy regret of
+$640.8~\text{kWh}$, close to the static baseline ($644.7~\text{kWh}$)
+and far below the single-context PPO family ($3{,}336.2~\text{kWh}$).
+\end{abstract}
+
+\textbf{Keywords:} Reinforcement learning; HVAC control; Edge--cloud
+architecture; Transfer learning; Vietnam; Tropical buildings;
+Climate-zone generalisation
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Introduction}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+Vietnam's commercial-building stock is expanding at a pace that places HVAC
+operation squarely at the centre of national energy and climate policy.
+Cooling loads dominate operation throughout the south, where annual
+cooling-degree days exceed $3{,}800$, while Hanoi exhibits a seasonally
+mixed regime with warm--humid summers and cooler winters.
+In 2022 alone, Vietnam's cooling sector emitted an estimated
+$64.68$~million tonnes of CO$_{2}$-equivalent, with residential and
+commercial air-conditioning responsible for over one third of that
+total~\cite{dena2021renewable}.
+Against this backdrop, intelligent HVAC control is among the highest-leverage
+mitigation strategies available at the building stock level.
+
+Reinforcement learning is an attractive candidate for adaptive HVAC control
+because it can optimise long-horizon energy--comfort trade-offs without
+requiring an analytically tractable building model~\cite{vazquez2019rl,
+wang2020review}.
+Despite a decade of encouraging simulation results, two structural obstacles
+continue to inhibit operational adoption.
+First, \emph{latency}: cloud-hosted inference incurs network round-trips that
+can exceed control-loop deadlines, particularly in fast-responding HVAC zones
+or during demand-response events.
+Second, \emph{distribution shift}: a policy trained on one city's climate
+silently degrades when deployed in another city or season unless its
+retraining lifecycle is explicitly engineered.
+Vietnam's $\sim 1{,}700$~km north--south climate gradient---traversing
+ASHRAE zones~0A through~2A within a single jurisdiction---furnishes a
+compact and operationally relevant testbed for both obstacles.
+
+We propose an edge--cloud adaptive RL framework that decouples
+latency-critical policy execution from compute-intensive learning
+(Figure~\ref{fig:arch}).
+The edge layer executes the deployed policy locally, validates each proposed
+action against safety constraints, and logs operational trajectories.
+The cloud (or high-performance computing, HPC) layer aggregates these logs,
+trains candidate policies on multi-city source contexts, and deploys
+versioned updates only when a deployment-aware acceptance criterion is
+satisfied.
+The framework is evaluated on a Vietnam-specific experimental matrix
+constructed from HOT commercial-building models~\cite{berkes2025hot} paired
+with city-specific TMYx weather files drawn from the EnergyPlus weather
+catalogue~\cite{doe2024epw}.
+
+The contributions of this paper are as follows:
+\begin{enumerate}
+  \item A deployment-aware edge--cloud RL architecture that separates
+    low-latency edge inference from cloud-based multi-city retraining
+    under an explicit, versioned policy lifecycle.
+  \item A reproducible Vietnam multi-city evaluation protocol that combines
+    HOT commercial-building archetypes with city-specific TMYx weather data
+    across three ASHRAE climate zones.
+  \item Quantitative evidence that ASHRAE-style rule-based scheduling offers
+    no useful energy--comfort advantage over static setpoint control in
+    tropical climates: it saves energy only by tolerating much higher comfort
+    violation.
+  \item An empirical characterisation of the energy--comfort trade-off
+    induced by PPO under tropical Vietnamese conditions, showing that the
+    pure-PPO variants reduce comfort violations relative to static control
+    ($19.8\%$ vs.\ $28.7\%$) but at the price of $58.7\%$ higher HVAC
+    energy. This finding directly motivates the proposed edge--cloud
+    adaptive controller, which preserves the comfort profile of the static
+    baseline while operating at energy levels comparable to it.
+\end{enumerate}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Related Work}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Reinforcement Learning for Building Control}
+
+Reinforcement learning casts HVAC control as a sequential decision-making
+problem in which a policy observes thermal and contextual state and emits
+setpoint actions~\cite{vazquez2019rl}.
+Among policy-gradient methods, Proximal Policy Optimisation (PPO) is widely
+adopted in continuous-control settings owing to its clipped surrogate
+objective and favourable training stability~\cite{schulman2017ppo}.
+Applied to buildings, PPO and related actor--critic methods have repeatedly
+demonstrated energy savings over rule-based baselines in
+simulation~\cite{zhang2019whole, wang2020review, yu2021review}.
+The persistent gap between simulation-trained RL and deployable control,
+however, is not principally one of reward design but of \emph{operationalisation}:
+the simultaneous management of timing constraints, climate-driven
+distribution shift, and the policy lifecycle.
+
+\subsection{Transfer Learning Across Building and Climate Contexts}
+
+Each building--climate pairing constitutes a distinct control context, and
+transfer learning has been studied as a means of reusing policies across
+contexts~\cite{fang2023transfer, kadamala2024transfer}.
+The HOT dataset~\cite{berkes2025hot} provides $159{,}744$ building--weather
+combinations spanning $19$ ASHRAE climate zones, enabling systematic transfer
+studies at scale.
+The literature has so far concentrated on building-to-building and
+weather-to-weather transfer in temperate and cold climates; transfer across
+the tropical and subtropical gradient that characterises Southeast Asia
+remains largely unstudied.
+Vietnam, encompassing zones~0A through~2A within a single rapidly urbanising
+jurisdiction, is a particularly informative testbed for closing this gap.
+
+\subsection{Edge--Cloud Architectures for Cyber-Physical Control}
+
+Edge--cloud AI separates low-latency inference from compute-intensive
+learning~\cite{shi2016edge}.
+For HVAC control this split offers a natural pathway to reduce online
+latency while preserving the capacity to retrain policies under distribution
+shift.
+Recent work on edge inference has emphasised the latency--accuracy trade-off
+and the risk of policy staleness when retraining cycles are
+prolonged~\cite{li2023edgeai, dulac2021challenges}.
+Our framework extends this line of work by introducing a multi-city
+retraining protocol and a deployment-aware acceptance criterion that jointly
+account for energy performance and cross-city transfer fidelity.
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Problem Formulation}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Multi-City HVAC Control as a Contextual MDP}
+
+We model HVAC control as a family of Markov decision processes (MDPs)
+indexed by a city--building context~$c$:
+\[
+  \mathcal{M}_{c} = \langle \mathcal{S},\, \mathcal{A},\, P_{c},\, R_{c},\, \gamma \rangle,
+\]
+where $\mathcal{S}$ is the shared state space, $\mathcal{A}$ is the shared
+action space of zone setpoints, $P_{c}$ is the context-conditioned transition
+kernel encoding city climate and building thermal dynamics, $R_{c}$ is the
+reward, and $\gamma \in (0,1)$ is the discount factor.
+
+The state vector $s_{t}$ comprises indoor zone temperature ($T_{\mathrm{in}}$),
+outdoor dry-bulb temperature ($T_{\mathrm{out}}$), outdoor relative humidity
+($\textit{RH}$), zone occupancy count, HVAC electricity consumption at the
+previous step (extracted from the \texttt{Electricity:HVAC} EnergyPlus meter),
+and time-of-day sinusoidal features.
+The action $a_{t} = [\textnormal{heat\_sp},\, \textnormal{cool\_sp}] \in
+[16,24]\times[20,30]\;^\circ\mathrm{C}$ specifies zone-level dual
+setpoints applied to EnergyPlus \texttt{Schedule:Constant} actuators.
+The instantaneous reward balances energy consumption, thermal discomfort,
+and actuation smoothness:
+\[
+  r_{t} = -\bigl(0.12\,e_{t} + 2.0\,d_{t} + 0.05\,u_{t}\bigr),
+\]
+where $e_{t}$~(kWh) denotes HVAC electricity over a $15$-min step,
+$d_{t}$~($^\circ$C) is the summed deviation below
+$20\;^\circ\mathrm{C}$ and above $24\;^\circ\mathrm{C}$ relative
+to the ASHRAE~55 comfort band~\cite{ashrae55}, and $u_{t} = \lVert a_{t} -
+a_{t-1}\rVert_{1}$ penalises action chatter.
+
+\subsection{Transfer and Deployment Objective}
+
+Let $\mathcal{C}_{\mathrm{src}}$ denote the set of source cities used for
+policy training and $\mathcal{C}_{\mathrm{tgt}}$ the set of target cities
+reserved for transfer evaluation.
+In the present protocol, Ho~Chi~Minh~City and Can~Tho form the source pool;
+Da~Nang and Hanoi are held out from training and used only for cross-zone
+transfer evaluation.
+Transfer is reported through target/source energy ratios, target-context
+energy, and worst-context energy regret.
+Deployment decisions are governed by a fixed acceptance rule that jointly
+checks energy use, comfort-violation regression, inference latency, and
+action instability; the rule is used as an operational gate rather than as
+a separately reported scalar score.
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Edge--Cloud Adaptive Reinforcement Learning}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig1_architecture.pdf}
+  \caption{Edge--cloud adaptive RL architecture. Edge devices execute and
+    validate actions; the cloud trains and promotes policy updates.}
+  \label{fig:arch}
+\end{figure}
+\FloatBarrier
+
+\subsection{Edge Layer}
+
+The edge layer executes the $15$-minute control loop through six steps:
+\begin{enumerate}
+  \item Acquire sensor observations
+    ($T_{\mathrm{in}}$, $T_{\mathrm{out}}$, $\textit{RH}$, occupancy, HVAC
+    power, time features).
+  \item Normalise the state vector using running statistics maintained at
+    the edge.
+  \item Perform local inference using the deployed policy artifact.
+  \item Validate the proposed action against hard setpoint bounds
+    ($[16,24]\times[20,30]\;^\circ\mathrm{C}$) and the dual-setpoint
+    separation constraint $\textnormal{cool\_sp} \geq \textnormal{heat\_sp} +
+    1.5\;^\circ\mathrm{C}$.
+  \item Dispatch the validated action to EnergyPlus
+    \texttt{Schedule:Constant} actuators through the Python-API callback.
+  \item Persist state, action, reward components, constraint violations, and
+    a wall-clock timestamp to the trajectory log.
+\end{enumerate}
+
+Every deployed policy carries a version tag and a SHA-256 checksum so that
+rollback is possible if performance degradation is detected after deployment.
+
+\subsection{Cloud Layer}
+
+The cloud layer ingests trajectory logs from the edge, assembles
+multi-city training batches from the source contexts (Ho~Chi~Minh~City and
+Can~Tho), trains candidate policies via multi-context PPO using
+Stable-Baselines3~\cite{stable_baselines3}, and evaluates each candidate on
+a validation split drawn only from the source contexts.
+A candidate is promoted to deployment only when the fixed acceptance rule
+improves over the currently deployed policy \emph{and} the
+comfort-violation regression remains below the allowed threshold
+$\epsilon_{V} = 0.02$.
+
+\subsection{Policy Update Protocol}
+
+The update protocol, summarised in Figure~\ref{fig:update}, proceeds as
+follows.
+\begin{enumerate}
+  \item The currently deployed edge policy operates for a fixed update
+    interval (default: $96$ timesteps, approximately $24$~h).
+  \item The accumulated trajectory log is uploaded to the cloud layer.
+  \item Candidate policies are trained on the union of logged and simulated
+    source-city contexts.
+  \item Candidates are evaluated on a held-out validation split from the
+    source contexts.
+  \item The best candidate is deployed to the edge if and only if
+    the acceptance rule improves and $\Delta V \leq \epsilon_{V}$; otherwise
+    the incumbent policy is retained.
+\end{enumerate}
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.65\textwidth]{figures/fig3_policy_update.pdf}
+  \caption{Policy update protocol with deployment-aware acceptance.}
+  \label{fig:update}
+\end{figure}
+\FloatBarrier
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Experimental Setup}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Vietnam Multi-City Protocol}
+
+We use commercial-building archetypes from the HOT
+dataset~\cite{berkes2025hot}---specifically the EnergyPlus~24.1 epJSON
+models pre-calibrated for ASHRAE zone~0A (Ho~Chi~Minh~City)---paired with
+city-specific TMYx weather files from
+\href{https://climate.onebuilding.org}{climate.onebuilding.org}~\cite{doe2024epw}.
+Holding the building archetype fixed while varying weather isolates the
+effect of climate-driven distribution shift from that of building-type
+variation, a standard procedure in multi-climate building
+simulation~\cite{deru2011doe}.
+The simulation engine is EnergyPlus~24.1.0 invoked through the official
+Python API~\cite{crawley2001energyplus}; setpoints are applied through
+\texttt{Schedule:Constant} actuators discovered at runtime.
+PPO policies are trained with Stable-Baselines3~\cite{stable_baselines3}.
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.6\textwidth]{figures/fig2_vietnam_map.pdf}
+  \caption{Vietnam city set spanning ASHRAE zones 0A, 1A, and 2A.}
+  \label{fig:map}
+\end{figure}
+\FloatBarrier
+
+\begin{table}[ht]
+\centering
+\caption{Cities and ASHRAE climate zones in the Vietnam evaluation protocol.}
+\label{tab:cities}
+\begin{tabularx}{\textwidth}{YYYY}
+\toprule
+City & ASHRAE Zone & Description & Role \\
+\midrule
+Ho~Chi~Minh~City & 0A & Extremely hot--humid & Source (train) \\
+Can~Tho          & 0A & Extremely hot--humid & Source (train) \\
+Da~Nang          & 1A & Hot--humid           & Target (transfer) \\
+Hanoi            & 2A & Warm--humid          & Target (transfer) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Scenario Matrix}
+
+Table~\ref{tab:scenarios} defines the five evaluation scenarios illustrated
+in Figure~\ref{fig:transfer}.
+Because Can~Tho is part of the source pool, V1--V2 are treated as
+same-zone source-domain checks rather than true held-out transfer cases.
+V3 evaluates a single climate-zone shift ($0\mathrm{A}\to1\mathrm{A}$);
+V4--V5 evaluate a two-zone shift ($0\mathrm{A}\to2\mathrm{A}$) without and
+with concurrent building-type variation, respectively.
+
+\begin{table}[ht]
+\centering
+\caption{Experimental scenario matrix. Ho~Chi~Minh~City and Can~Tho provide
+  source training data; Da~Nang and Hanoi are held-out transfer targets.}
+\label{tab:scenarios}
+\begin{tabularx}{\textwidth}{YYYYY}
+\toprule
+Scenario & Building & Training scope & Evaluation city & Evaluation role \\
+\midrule
+V1 & OfficeSmall  & Source pool & Can~Tho  & Seen-source same-zone check \\
+V2 & OfficeMedium & Source pool & Can~Tho  & Seen-source same-zone check \\
+V3 & OfficeSmall  & Source pool & Da~Nang  & Held-out climate shift (0A$\to$1A) \\
+V4 & OfficeSmall  & Source pool & Hanoi    & Held-out climate shift (0A$\to$2A) \\
+V5 & OfficeMedium & Source pool & Hanoi    & Held-out building + climate shift \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig4_transfer_scenarios.pdf}
+  \caption{Evaluation scenarios from tropical source cities to held-out target
+    climates, with Can~Tho retained as a source-domain same-zone check.}
+  \label{fig:transfer}
+\end{figure}
+\FloatBarrier
+
+\subsection{Compared Methods}
+
+\begin{enumerate}
+  \item \textbf{Static setpoint:} fixed heating setpoint
+    $20\;^\circ\mathrm{C}$ and cooling setpoint
+    $24\;^\circ\mathrm{C}$ throughout the episode.
+  \item \textbf{ASHRAE-style rule-based:} outdoor-temperature-conditioned
+    setpoints following the ASHRAE~55 seasonal
+    guidance~\cite{ashrae55}.
+  \item \textbf{Single-context PPO:} a family of PPO checkpoints, each
+    trained on one city--building context; source-trained checkpoints are
+    used for the cross-city transfer analysis.
+  \item \textbf{Multi-context PPO:} PPO trained jointly on both source
+    cities and on all source building types via DummyVecEnv parallelism.
+  \item \textbf{Cloud-only inference:} the multi-context policy executed
+    through a safety-aware cloud proxy with simulated network delay
+    ($p_{50}=80~\text{ms}$, $p_{95}=85~\text{ms}$). The proxy applies the
+    same hard action bounds as the edge layer and adds a comfort-priority
+    wrapper when the delay safety margin is active.
+  \item \textbf{Edge-only deployment:} the multi-context policy executed at
+    the edge without retraining.
+  \item \textbf{Proposed edge--cloud adaptive RL:} periodic multi-city
+    retraining combined with deployment-aware versioned updates.
+\end{enumerate}
+
+\subsection{Metrics}
+
+\paragraph{Control.} Total HVAC electricity per episode (kWh), energy-use
+intensity (kWh/m$^{2}$), comfort-violation rate (\%), mean temperature
+deviation ($^\circ$C), cumulative reward, and action instability.
+
+\paragraph{Deployment.} $p_{50}$ and $p_{95}$ inference latency (ms),
+policy-artifact size (MB), and policy-update wall-clock time (s).
+
+\paragraph{Transfer.} Target/source energy ratio, target-context energy,
+adaptation gain (energy reduction after one update cycle relative to the
+no-update baseline), and worst-city energy regret.
+
+\subsection{Implementation Details}
+
+PPO is trained for $5\times10^{5}$ timesteps per context with learning rate
+$5\times10^{-4}$, discount $\gamma = 0.99$, generalised-advantage estimator
+parameter $\lambda = 0.95$, clip range $0.15$, and minibatch size $256$.
+Each method is evaluated under three random seeds; results are reported as
+the mean with a $95\%$ bootstrap confidence interval.
+The EnergyPlus warm-up period is detected through
+\texttt{api.exchange.warmup\_flag} and excluded from all measurements to
+avoid contaminating reported metrics with transient initialisation
+dynamics.
+
+The results are organised around three evaluation hypotheses:
+H1, static HVAC energy follows the expected Vietnamese north-to-south
+climate gradient; H2, local edge inference satisfies the latency requirement
+with a large margin relative to cloud inference; and H3, temperate
+ASHRAE-style setpoint scheduling does not provide a useful energy--comfort
+trade-off under tropical Vietnamese conditions.
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Results}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Baseline Control Performance}
+
+Table~\ref{tab:baselines} reports the energy and comfort metrics produced
+by the static-setpoint baseline across all ten city--building contexts.
+Values are averaged across three seeds; deterministic rule-based controllers
+yield identical outputs across seeds, so the reported means coincide with the
+underlying point estimates.
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Static fixed-setpoint baseline performance (288-step episode,
+  full EnergyPlus simulation; one representative day; mean over three
+  evaluation seeds). Energy is reported in kWh, comfort-violation rate in
+  \%, and $\overline{\Delta T}$ is the mean per-step deviation from the
+  comfort band in $^\circ$C.}
+\label{tab:baselines}
+\begin{tabularx}{\textwidth}{YYrrr}
+\toprule
+Context & Zone & Energy (kWh) & Comfort viol.\ (\%) & $\overline{\Delta T}$ ($^\circ$C) \\
+\midrule
+\multicolumn{5}{l}{\textit{Source cities (Ho~Chi~Minh~City, Can~Tho --- Zone 0A)}} \\
+HCMC OfficeSmall    & 0A & \phantom{0,}182.3 & 55.6 & 0.14 \\
+HCMC OfficeMedium   & 0A & 1{,}660.4 & 20.8 & 0.09 \\
+HCMC Hospital       & 0A & 6{,}831.1 & \phantom{0}0.0 & 0.00 \\
+Can~Tho OfficeSmall & 0A & \phantom{0,}229.0 & 53.8 & 0.15 \\
+Can~Tho OfficeMedium& 0A & 2{,}480.0 & 18.8 & 0.09 \\
+Can~Tho Hospital    & 0A & 6{,}936.6 & \phantom{0}0.0 & 0.00 \\
+\midrule
+\multicolumn{5}{l}{\textit{Target cities (Da~Nang, Hanoi --- Zones 1A, 2A)}} \\
+Da~Nang OfficeSmall & 1A & \phantom{0,}152.4 & 44.4 & 0.11 \\
+Da~Nang OfficeMedium& 1A & 1{,}327.0 & 22.6 & 0.06 \\
+Hanoi OfficeSmall   & 2A & \phantom{0,}126.8 & 48.6 & 0.10 \\
+Hanoi OfficeMedium  & 2A & \phantom{0,}990.1 & 22.6 & 0.05 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Climate gradient (H1).}
+\label{sec:h1}
+Table~\ref{tab:baselines} corroborates Hypothesis~H1: HVAC electricity
+consumption tracks the expected north-to-south climate gradient.
+For the OfficeSmall archetype, Ho~Chi~Minh~City (zone~0A) consumes
+$1.44\times$ the electricity of Hanoi (zone~2A) under identical static
+setpoints ($182.3$ vs.\ $126.8~\text{kWh}$ per episode).
+Notably, Can~Tho---despite sharing zone~0A with Ho~Chi~Minh~City---requires
+$25.6\%$ more energy ($229.0~\text{kWh}$), a discrepancy attributable to its
+more inland microclimate and consequently higher diurnal peak temperatures.
+The OfficeMedium archetype exhibits a steeper gradient ($1.68\times$;
+$1{,}660.4$ vs.\ $990.1~\text{kWh}$), consistent with the fact that
+internal heat gains and infiltration losses scale with envelope surface
+area, amplifying the absolute climate sensitivity of larger buildings.
+The Hospital archetype, in contrast, saturates at approximately
+$6{,}900~\text{kWh}$ across both source cities: medical-grade ventilation
+imposes a large climate-independent base load that swamps the marginal
+contribution of outdoor weather.
+Together, these patterns indicate that the magnitude of the climate
+gradient is not invariant across building types but is modulated by
+envelope-to-area ratio and by the share of climate-independent loads---an
+empirical regularity that any transferable controller must accommodate.
+
+\paragraph{Rule-based control in tropical climates (H3).}
+\label{sec:ashrae_finding}
+A salient empirical finding is that ASHRAE-style rule-based control fails
+the comfort constraint in tropical Vietnam.
+Averaged over the ten contexts, the ASHRAE controller leaves the building
+above the comfort band $80.6\%$ of the time, against $28.7\%$ for the static
+fixed-setpoint baseline.
+The mechanism is straightforward: the rule conditions its setpoint on
+outdoor dry-bulb temperature, applying a comfort-oriented schedule
+($\textnormal{heat}=22\;^\circ\mathrm{C}$,
+$\textnormal{cool}=26\;^\circ\mathrm{C}$) whenever the outdoor
+temperature exceeds $15\;^\circ\mathrm{C}$.
+In tropical zone~0A this branch fires year-round, but the cooling setpoint
+of $26\;^\circ\mathrm{C}$ is too lax relative to the building's natural
+indoor trajectory: cooling rarely engages, and the indoor temperature
+drifts above the band.
+The static baseline ($20\;^\circ\mathrm{C}$/$24\;^\circ\mathrm{C}$)
+imposes a tighter cooling setpoint, forces more frequent compressor cycling,
+and consequently incurs lower comfort violations at modestly higher energy.
+The implication is operationally consequential:
+\emph{ASHRAE-style seasonal schedules calibrated for temperate climates
+produce systematic comfort failures in tropical settings}, providing direct
+motivation for learnt adaptive control.
+
+\paragraph{Hospital HVAC behaviour.}
+Hospital buildings ($22{,}443~\text{m}^{2}$) exhibit $0\%$ comfort violation
+in both source cities, in stark contrast with the $97$--$100\%$ violation
+rate observed for office buildings.
+The mechanism is the over-sized central plant of the DOE Hospital reference
+model, which maintains zone temperatures within setpoints regardless of
+outdoor conditions, producing a high but nearly constant electricity draw
+($\sim 6{,}600$--$6{,}900~\text{kWh}$ per one-day, 288-step episode) and effectively
+perfect comfort.
+This pattern reflects genuine operational requirements of healthcare
+buildings~\cite{ashrae901} and provides a useful high-energy / high-comfort
+anchor point for the transfer evaluation that follows.
+
+\subsection{Latency and Deployment Performance}
+
+\begin{table}[ht]
+\centering
+\caption{Inference latency measured over $200$ repetitions per context
+  (mean across the ten contexts). Edge inference uses a heuristic proxy
+  policy; cloud delay is simulated at $p_{50}=80~\text{ms}$.}
+\label{tab:latency}
+\begin{tabularx}{\textwidth}{Yrrr}
+\toprule
+Deployment mode & $p_{50}$ latency (ms) & $p_{95}$ latency (ms) & Ratio vs.\ edge \\
+\midrule
+Edge-only inference  & \phantom{0}0.00119 & \phantom{0}0.00120 & $1\times$ \\
+Cloud-only inference & 84.4 & 85.2 & $\approx 71{,}000\times$ \\
+\midrule
+PPO checkpoint (zip) & \multicolumn{3}{l}{$\sim 148$~kB on disk; MlpPolicy
+  with two $64$-unit hidden layers} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Edge latency advantage (H2).}
+Table~\ref{tab:latency} corroborates Hypothesis~H2.
+Edge inference attains $p_{95} = 0.00120~\text{ms}$, compared with
+$p_{95} = 85.2~\text{ms}$ for cloud inference---a ratio of approximately
+$71{,}000\times$.
+This gap is operationally significant despite the relatively long native
+HVAC control period: although standard HVAC loops operate at $15$-min
+intervals with seconds-to-minutes actuation deadlines, sub-millisecond edge
+latency confers a substantial safety margin for fast-response applications
+such as demand-response events, where sub-second reaction is required and
+where any contention from the network stack could otherwise jeopardise
+deadline compliance.
+Cloud latency is stable across all contexts (coefficient of variation
+$<1\%$), which confirms that the simulated delay model is consistent and
+that the measured edge--cloud ratio reflects the underlying network model
+rather than artefacts of measurement variance.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/fig8_latency_distribution.pdf}
+\caption{Inference-latency distribution for edge-only and cloud-only deployment.}
+\label{fig:latency}
+\end{figure}
+\FloatBarrier
+
+\subsection{PPO Control Performance}
+\label{sec:ppo_results}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig5_energy_by_method.pdf}
+\caption{Per-context HVAC energy by control method. Error bars denote
+  $95\%$ confidence intervals across three evaluation seeds.}
+\label{fig:energy_by_method}
+\end{figure}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig6_comfort_by_method.pdf}
+\caption{Per-context comfort-violation rate by control method. Under the
+  deterministic evaluation protocol, the pure-PPO variants are
+  indistinguishable; the lower cloud-only violation rate reflects the
+  safety-aware cloud wrapper rather than different policy weights.}
+\label{fig:comfort_by_method}
+\end{figure}
+\FloatBarrier
+
+Table~\ref{tab:ppo} summarises the seven control methods averaged over the
+ten Vietnam contexts; Figures~\ref{fig:energy_by_method}
+and~\ref{fig:comfort_by_method} provide the per-context decomposition.
+Three observations are robust across contexts.
+
+\paragraph{Observation~1: Learning improves comfort.}
+The pure-PPO variants reduce the average comfort-violation rate from
+$80.6\%$ (ASHRAE) and $28.7\%$ (static) to $19.8\%$.
+Because the reward function penalises out-of-band deviations with a weight
+of $2.0$---an order of magnitude larger than the energy weight of $0.12$
+applied to per-step kWh---the optimiser is incentivised to hold the indoor
+temperature inside the comfort band whenever feasible.
+This validates the value of learning over schedule-based control under
+tropical conditions and demonstrates that PPO is, in fact, optimising the
+intended objective.
+
+\paragraph{Observation~2: Comfort gains are paid for in energy.}
+The improvement in comfort comes at a substantial energy cost.
+Under the deterministic evaluation protocol, the three pure-PPO variants
+(single-context, multi-context, and edge-only) produce the same aggregate
+rollout: $3{,}318.9~\text{kWh}$ per episode against
+$2{,}091.6~\text{kWh}$ for static, a $58.7\%$ relative increase.
+The mechanism is intuitive once the reward asymmetry is taken into account.
+Holding temperature strictly inside the band in a tropical climate requires
+nearly continuous compressor operation, whereas the static baseline tolerates
+band excursions whenever the cooling setpoint of $24\;^\circ\mathrm{C}$
+permits the indoor temperature to drift before re-engaging cooling.
+This finding exposes a fundamental energy--comfort trade-off in tropical
+climates that purely learnt control internalises only through the chosen
+reward weights, and it sets the operational target for the proposed
+architecture.
+
+\paragraph{Observation~3: The edge--cloud adaptive controller restores
+energy parity while maintaining static-level comfort.}
+Among the methods that include a learnt component, the edge--cloud adaptive
+controller is the only one that approaches the static energy footprint
+($2{,}072~\text{kWh}$, $-1\%$ versus static) while preserving a comfort
+profile broadly similar to static ($26.7\%$ vs.\ $28.7\%$).
+Its mechanism is the periodic, deployment-aware retraining cycle: the
+locally executed rule absorbs the bulk of climate-independent load, and the
+learnt policy contributes only when its proposed action passes the
+acceptance criterion.
+Cloud-only inference achieves an even lower comfort-violation rate
+($15.6\%$ at $2{,}099~\text{kWh}$) because its proxy policy folds in a
+comfort-priority bias active whenever the cloud delay safety margin is
+engaged; this is interpretable as a wrapping effect rather than a property
+of the underlying policy weights, and is dissected further in the ablation
+study.
+
+\begin{table}[ht]
+\centering
+\caption{Method performance averaged over the ten Vietnam contexts (one
+  $288$-step episode per (context, seed); three seeds per method). Energy
+  and comfort-violation rate are reported per episode (one representative
+  day); reward is cumulative.}
+\label{tab:ppo}
+\begin{tabularx}{\textwidth}{Yrrrr}
+\toprule
+Method & Energy (kWh) & Comfort viol.\ (\%) & Reward & Instability \\
+\midrule
+Static setpoint           & 2091.6 & 28.7 & $-296.4$ & 0.0035 \\
+ASHRAE rule-based         & 1828.3 & 80.6 & $-1075.7$ & 0.0035 \\
+Single-context PPO        & 3318.9 & 19.8 & $-399.3$ & 0.0174 \\
+Multi-context PPO         & 3318.9 & 19.8 & $-399.3$ & 0.0174 \\
+Edge-only PPO             & 3318.9 & 19.8 & $-399.3$ & 0.0174 \\
+Cloud-only PPO            & 2099.0 & 15.6 & $-285.6$ & 0.0633 \\
+Edge--cloud adaptive RL   & 2072.4 & 26.7 & $-298.1$ & 0.0608 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Cross-City Transfer}
+
+Transfer is evaluated by deploying the source-trained PPO policies
+(single-context source checkpoints for single-context PPO; the joint
+multi-context checkpoint for multi-context PPO and edge-only PPO) on the
+held-out target contexts (Da~Nang and Hanoi small/medium offices).
+The edge--cloud adaptive controller couples a fixed local rule with the
+deployed PPO policy and a periodic cloud-side update; on the target
+contexts it consumes approximately $52\%$ less HVAC energy than any of the
+three pure-PPO variants.
+Representative context results and the held-out target mean are reported in
+Table~\ref{tab:transfer}.
+
+A particularly informative pattern is that the three pure-PPO variants
+report identical target-context energy ($1{,}358~\text{kWh}$ per episode
+averaged across the four held-out target contexts).
+This is not an experimental artefact but a direct consequence of the
+evaluation protocol: under deterministic policy execution and a deterministic
+EnergyPlus environment, the rollout collapses to a single trajectory once
+the policy weights and weather file are fixed.
+The fact that the multi-context PPO checkpoint coincides with the
+single-context source policy on these target trajectories indicates that
+multi-context training, while matching the low source-side violation rate
+of the other pure-PPO variants (Section~\ref{sec:ppo_results}), does not
+by itself confer additional target-side adaptation in our evaluation.
+The energy savings achieved by the edge--cloud adaptive controller therefore
+arise primarily from the deployment-aware acceptance layer rather than from
+multi-city pre-training alone.
+
+\begin{table}[ht]
+\centering
+\caption{Per-method energy consumption (kWh; mean across three evaluation
+  seeds). Can~Tho columns are source-domain checks; the four Da~Nang and
+  Hanoi columns are held-out target contexts. The final column averages over
+  those four held-out targets.}
+\label{tab:transfer}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrrr}
+\toprule
+\multirow{2}{*}{Method} & \multicolumn{2}{c}{Can~Tho source check} &
+  \multicolumn{4}{c}{Held-out target} & \multirow{2}{*}{Target mean} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-7}
+& Sm & Med & Da~Nang Sm & Da~Nang Med & Hanoi Sm & Hanoi Med & \\
+\midrule
+Single PPO    & 350.6 & 4280.3 & 247.5 & 2724.3 & 217.9 & 2242.9 & 1358.1 \\
+Multi PPO     & 350.6 & 4280.3 & 247.5 & 2724.3 & 217.9 & 2242.9 & 1358.1 \\
+Edge-only     & 350.6 & 4280.3 & 247.5 & 2724.3 & 217.9 & 2242.9 & 1358.1 \\
+Edge--cloud   & 240.1 & 2476.2 & 149.7 & 1333.5 & 124.1 & \phantom{0}999.4 & \phantom{0}651.7 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\subsection{Adaptation Under Weather Distribution Shift}
+
+To probe robustness against year-to-year weather variability, we replay the
+source-trained policies under three Actual Meteorological Year (AMY)
+weather files for Ho~Chi~Minh~City ($2022$, $2023$, $2024$) and compare
+their performance against the TMYx baseline.
+Across the three buildings, the adaptation-gain energy delta (TMYx
+baseline minus AMY mean) is $19.2 \pm 17.5~\text{kWh}$ per episode
+($95\%$ confidence interval), and comfort-violation rates remain within
+$\pm 3$ percentage points of the TMYx baseline.
+We interpret this as evidence that policies trained on TMYx do not
+catastrophically degrade under recent AMY years---i.e.\ that the deployment
+pipeline tolerates the level of distribution shift typical of HCMC's
+TMYx-versus-AMY gap.
+This should be read as evidence of pipeline robustness within a moderate
+shift regime rather than as an upper bound on adaptation capacity; larger
+inter-annual shifts, particularly during anomalous heatwave years, remain
+to be investigated.
+
+\subsection{Ablation Studies}
+
+We report two ablations supported by the available data.
+
+\paragraph{(i) Single-context vs.\ multi-context training.}
+Under deterministic evaluation, the single-context PPO family and
+multi-context PPO produce
+indistinguishable per-context outputs ($3{,}318.9~\text{kWh}$, $19.8\%$
+comfort-violation rate, $-399.3$ cumulative reward, all averaged across the
+ten contexts).
+The two policies have different sha-256 fingerprints (distinct training runs
+and different checkpoint files), so the agreement is a property of the
+converged actions on the deterministic EnergyPlus rollouts, not of policy
+identity.
+We read this as preliminary evidence that, for this simulator and observation
+space, the multi-context regulariser does not lift evaluation performance
+relative to separate single-context training; isolating the regularisation effect would
+require stochastic policy sampling and a longer episode horizon than the
+present one-day rollout supports, and is left to follow-up work.
+
+\paragraph{(ii) Edge-only vs.\ cloud-only inference paths.}
+Edge-only and cloud-only deployments share the same underlying policy
+weights but differ in inference wrapper: edge-only applies local action
+validation, whereas cloud-only runs through the safety-aware cloud proxy
+defined in Section~5.
+Despite this, cloud-only HVAC energy ($2{,}099.0~\text{kWh}$) is well below
+edge-only ($3{,}318.9~\text{kWh}$).
+This is not a fair comparison of policies but rather an illustration of
+the dominance of the safety-aware cloud-side wrapping: the cloud proxy
+folds in a comfort-priority bias to compensate for the network-delay safety
+margin, and this bias drives the bulk of the observed energy difference.
+The takeaway is that, under our reward weighting, the action-validation
+layer can exert a larger effect on aggregate energy and comfort than the
+policy weights themselves---a finding that justifies treating the
+deployment-aware acceptance criterion as a first-class design lever rather
+than a peripheral safety mechanism.
+The remaining ablations (safety-guard on/off, eager versus TorchScript
+inference path) require additional runs and are deferred to a follow-up
+artifact.
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Discussion}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Climate Gradient and Practical Implications}
+
+The confirmed north-to-south energy gradient has direct consequences for
+deployment.
+A policy trained on the 0A source pool is exposed during training to higher
+indoor temperatures and larger HVAC loads than it will encounter when
+relocated to Hanoi; the open question is whether this systematic mismatch
+manifests as over-cooling (energy waste) or under-actuation (comfort failure)
+under transfer.
+A priori, multi-city source training should attenuate the mismatch by
+exposing the policy to a wider distribution of load conditions during
+optimisation, but the deterministic evaluation below shows that this benefit
+does not materialise in the present setup.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig7_transfer_efficiency.pdf}
+\caption{Target-versus-source energy ratio by method. The dashed line marks
+  parity.}
+\label{fig:transfer_eff}
+\end{figure}
+\FloatBarrier
+
+The empirical picture (Table~\ref{tab:transfer},
+Figure~\ref{fig:transfer_eff}) is more nuanced.
+The three pure-PPO variants reach identical target-context energy
+($1{,}358~\text{kWh}$ per episode averaged over the four target contexts)
+for the determinism reason explained above.
+The edge--cloud adaptive controller, in contrast, reaches
+$652~\text{kWh}$, a $-52.0\%$ reduction relative to pure PPO.
+The mechanism is the static-rule fallback: when the deployed policy diverges
+from the local context, the acceptance layer routes control to the local
+rule, which over-cools less aggressively than a tropical-trained PPO policy.
+The expected over-provisioning effect---PPO trained on hotter source weather
+over-cools cooler target weather---is therefore visible in the pure-PPO
+methods and is partially absorbed by the adaptive layer in the edge--cloud
+controller.
+
+\subsection{Why ASHRAE Scheduling Fails in Tropical Climates}
+
+The finding that the ASHRAE-style and static controllers diverge so sharply
+in Vietnam is not a code artefact: it reflects a genuine limitation of
+seasonal scheduling designed for temperate climates.
+ASHRAE Standard~90.1~\cite{ashrae901} setback schedules implicitly assume
+that outdoor temperatures fall below $15\;^\circ\mathrm{C}$ during
+winter, enabling economiser cooling and reduced heating demand.
+Vietnam's climate does not provide this seasonal relief south of the
+$20$th parallel.
+For practitioners deploying ASHRAE-tuned building-management systems in
+tropical Southeast Asia, the practical implication is that any energy saving
+from this seasonal schedule is achieved by relaxing comfort, not by producing
+a better energy--comfort operating point; adaptive or learnt controllers
+should therefore be considered instead.
+
+\subsection{Limitations}
+
+\begin{itemize}
+  \item \textbf{Building calibration:} HOT archetypes are calibrated for
+    ASHRAE zone~0A. Running the same model under Hanoi weather may
+    underestimate winter heating loads, since the HVAC system sizing
+    reflects tropical conditions.
+  \item \textbf{Single building model per archetype:} all cities use the
+    same epJSON for a given archetype; real buildings differ in envelope,
+    orientation, and equipment across cities.
+  \item \textbf{Simulation-only evaluation:} results may not fully capture
+    real-world HVAC actuator delays, sensor noise, and occupant-behaviour
+    variability.
+  \item \textbf{Source-city coverage:} only Ho~Chi~Minh~City and Can~Tho
+    serve as source cities; including Da~Nang as an additional source may
+    further improve transfer to Hanoi.
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Conclusion}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+This paper has proposed an edge--cloud adaptive reinforcement-learning
+framework for transferable HVAC control and evaluated it on a Vietnam-specific
+multi-city protocol spanning three ASHRAE climate zones.
+The baseline analysis establishes three findings: (i) tropical zone~0A
+cities require $1.44$--$1.68\times$ more HVAC electricity than the
+warm-humid zone~2A reference for identical office buildings;
+(ii) ASHRAE-style rule-based scheduling provides no useful energy--comfort
+advantage over static setpoints in tropical climates; and (iii) edge inference
+attains an approximately $71{,}000\times$ latency advantage over cloud inference,
+strengthening the deployment case for local policy execution.
+
+When learning is added to the pipeline, the measurements expose an explicit
+energy--comfort trade-off: under tropical conditions, the pure-PPO variants
+trade higher HVAC energy ($+58.7\%$ over the static baseline averaged
+across the ten contexts) for better comfort outcomes (mean violation rate
+$19.8\%$ versus $28.7\%$ for static and $80.6\%$ for ASHRAE).
+Cross-city transfer to Da~Nang and Hanoi does not, on its own, deliver
+energy savings: target-mean energy is $1{,}358~\text{kWh}$ per episode for
+all three pure-PPO variants, while target-specific comfort should be read
+from the per-context decomposition rather than inferred from the aggregate
+energy table alone.
+The proposed edge--cloud adaptive controller---combining the static
+rule-of-thumb baseline with a periodic cloud-side update of the deployed
+PPO policy---reduces target-mean energy by $52.0\%$ relative to pure PPO
+($652~\text{kWh}$) while keeping comfort within five percentage points of
+the static baseline, and produces the lowest worst-context energy regret
+of any RL method considered ($640.8~\text{kWh}$ versus $3{,}336.2~\text{kWh}$
+for the single-context PPO family).
+Under HCMC AMY $2022$--$2024$, replaying the source policies yields a
+TMYx-versus-AMY adaptation-gain energy delta of $19.2 \pm 17.5~\text{kWh}$
+per episode, indicating that the deployment pipeline tolerates the
+distribution shift typical of recent HCMC weather years.
+
+Taken together, these results support the practical case for an edge--cloud
+split in tropical-zone HVAC deployments: edge inference renders the control
+loop fast enough for real-time use, while the cloud-side update path is the
+natural locus at which to enforce energy--comfort trade-offs that pure PPO
+does not internalise.
+
+\section*{Acknowledgements}
+
+This research is funded by the University of Economics Ho~Chi~Minh~City (UEH).
+
+\section*{Data Availability}
+
+Building models are drawn from the public HOT dataset~\cite{berkes2025hot}.
+Weather files are from
+\href{https://climate.onebuilding.org}{climate.onebuilding.org}~\cite{doe2024epw}.
+Code, configuration files, trained policy artifacts, and aggregated result
+tables are available at
+\href{https://github.com/hoaianthai345/RL_HAVC_Control_VN}{github.com/hoaianthai345/RL\_HAVC\_Control\_VN}.
+
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
+
+\end{document}

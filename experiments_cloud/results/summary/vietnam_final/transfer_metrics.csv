@@ -1,0 +1,8 @@
+mode,method,worst_context_regret_energy_kwh_mean,worst_context_regret_energy_kwh_ci95,mean_energy_regret_vs_oracle_kwh
+hot,ashrae,0.0,0.0,0.0
+hot,cloud_only,676.7926443777978,0.0,270.71214538116476
+hot,edge_cloud_adaptive,640.8331412114203,0.0,244.07666640200188
+hot,edge_only,3336.234537124634,0.0,1490.5997083452762
+hot,ppo_multicontext,3336.234537124634,0.0,1490.5997083452762
+hot,ppo_static,3336.234537124634,0.0,1490.5997083452762
+hot,static,644.6727231107652,0.0,263.26596341743135

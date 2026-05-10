@@ -1,0 +1,13 @@
+mode,context_id,method,deployment_score_with_latency_mean
+dummy,s1_small_office_mild_tmy,ashrae,34.54758202773053
+dummy,s1_small_office_mild_tmy,edge_cloud_adaptive,34.23062417007701
+dummy,s1_small_office_mild_tmy,static,24.7607047138848
+dummy,s2_small_office_mild_amy,ashrae,40.09700575959897
+dummy,s2_small_office_mild_amy,edge_cloud_adaptive,40.5518458617449
+dummy,s2_small_office_mild_amy,static,29.567822860593175
+dummy,s3_medium_office_hot_humid,ashrae,9.504519926731636
+dummy,s3_medium_office_hot_humid,edge_cloud_adaptive,14.63451858753591
+dummy,s3_medium_office_hot_humid,static,8.572591922989641
+dummy,s4_school_cold_occupancy_shift,ashrae,75.27732742973038
+dummy,s4_school_cold_occupancy_shift,edge_cloud_adaptive,81.42418003134479
+dummy,s4_school_cold_occupancy_shift,static,57.131760980291105

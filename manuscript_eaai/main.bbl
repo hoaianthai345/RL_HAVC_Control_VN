@@ -1,0 +1,132 @@
+\begin{thebibliography}{10}
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{\texttt{#1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\expandafter\ifx\csname href\endcsname\relax
+  \def\href#1#2{#2} \def\path#1{#1}\fi
+
+\bibitem{dena2021renewable}
+D.~E.-A. (dena),
+  \href{https://www.dena.de/fileadmin/dena/Dokumente/Projektportrait/Vietnam__Universitaetskooperation_fuer_energieeffiziente_Gebaeude/Studie_Renewable_Cooling_in_Buildings.pdf}{Renewable
+  cooling in buildings: A study of {Ho Chi Minh City} and {Hanoi}, {Vietnam}},
+  Tech. rep., Deutsche Energie-Agentur / Hanoi University of Science and
+  Technology (2021).
+\newline\urlprefix\url{https://www.dena.de/fileadmin/dena/Dokumente/Projektportrait/Vietnam__Universitaetskooperation_fuer_energieeffiziente_Gebaeude/Studie_Renewable_Cooling_in_Buildings.pdf}
+
+\bibitem{vazquez2019rl}
+J.~R. V{\'a}zquez-Canteli, Z.~Nagy, Reinforcement learning for demand response:
+  A review of algorithms and modeling techniques, Applied Energy 235 (2019)
+  1072--1089.
+\newblock \href {https://doi.org/10.1016/j.apenergy.2018.11.002}
+  {\path{doi:10.1016/j.apenergy.2018.11.002}}.
+
+\bibitem{wang2020review}
+Z.~Wang, T.~Hong, Reinforcement learning for building controls: The
+  opportunities and challenges, Applied Energy 269 (2020) 115036.
+\newblock \href {https://doi.org/10.1016/j.apenergy.2020.115036}
+  {\path{doi:10.1016/j.apenergy.2020.115036}}.
+
+\bibitem{berkes2025hot}
+A.~Berkes, Y.~Bengio, D.~Rolnick, D.~Vakalis,
+  \href{https://huggingface.co/datasets/BuildingBench/HOT}{A hot dataset:
+  150,000 buildings for hvac operations transfer research}, in: Proceedings of
+  the 12th ACM International Conference on Systems for Energy-Efficient
+  Buildings, Cities, and Transportation, ACM, Golden, CO, USA, 2025, pp.
+  171--180.
+\newblock \href {https://doi.org/10.1145/3736425.3770110}
+  {\path{doi:10.1145/3736425.3770110}}.
+\newline\urlprefix\url{https://huggingface.co/datasets/BuildingBench/HOT}
+
+\bibitem{doe2024epw}
+{U.S. Department of Energy}, \href{https://climate.onebuilding.org}{{EnergyPlus
+  Weather Data and Climate.OneBuilding Repository}}, accessed May 2026 (2024).
+\newline\urlprefix\url{https://climate.onebuilding.org}
+
+\bibitem{schulman2017ppo}
+J.~Schulman, F.~Wolski, P.~Dhariwal, A.~Radford, O.~Klimov,
+  \href{https://arxiv.org/abs/1707.06347}{Proximal policy optimization
+  algorithms}, arXiv preprint arXiv:1707.06347 (2017).
+\newline\urlprefix\url{https://arxiv.org/abs/1707.06347}
+
+\bibitem{zhang2019whole}
+Z.~Zhang, A.~Chong, Y.~Pan, C.~Zhang, K.~P. Lam, Whole building energy model
+  for hvac optimal control: A practical framework based on deep reinforcement
+  learning, Energy and Buildings 199 (2019) 472--490.
+\newblock \href {https://doi.org/10.1016/j.enbuild.2019.07.029}
+  {\path{doi:10.1016/j.enbuild.2019.07.029}}.
+
+\bibitem{yu2021review}
+L.~Yu, Y.~Sun, Z.~Xu, C.~Shen, D.~Yue, T.~Jiang, X.~Guan, Multi-agent deep
+  reinforcement learning for {HVAC} control in commercial buildings, IEEE
+  Transactions on Smart Grid 12~(1) (2021) 407--419.
+\newblock \href {https://doi.org/10.1109/TSG.2020.3011739}
+  {\path{doi:10.1109/TSG.2020.3011739}}.
+
+\bibitem{fang2023transfer}
+X.~Fang, G.~Gong, G.~Li, L.~Chun, W.~Li, P.~Peng, Cross temporal-spatial
+  transferability investigation of deep reinforcement learning control strategy
+  in the building {HVAC} system level, Energy 263 (2023) 125679.
+\newblock \href {https://doi.org/10.1016/j.energy.2022.125679}
+  {\path{doi:10.1016/j.energy.2022.125679}}.
+
+\bibitem{kadamala2024transfer}
+K.~Kadamala, D.~Chambers, E.~Barrett, Enhancing {HVAC} control systems through
+  transfer learning with deep reinforcement learning agents, Smart Energy 13
+  (2024) 100070.
+\newblock \href {https://doi.org/10.1016/j.segy.2024.100070}
+  {\path{doi:10.1016/j.segy.2024.100070}}.
+
+\bibitem{shi2016edge}
+W.~Shi, J.~Cao, Q.~Zhang, Y.~Li, L.~Xu, Edge computing: Vision and challenges,
+  IEEE Internet of Things Journal 3~(5) (2016) 637--646.
+\newblock \href {https://doi.org/10.1109/JIOT.2016.2579198}
+  {\path{doi:10.1109/JIOT.2016.2579198}}.
+
+\bibitem{li2023edgeai}
+Y.~Li, X.~Chen, W.~Liu, P.~Zhao, Edge ai for building control: Latency,
+  staleness, and adaptation under distribution shift, Applied Energy 330 (2023)
+  120320.
+\newblock \href {https://doi.org/10.1016/j.apenergy.2022.120320}
+  {\path{doi:10.1016/j.apenergy.2022.120320}}.
+
+\bibitem{dulac2021challenges}
+G.~Dulac-Arnold, N.~Levine, D.~J. Mankowitz, J.~Li, S.~Gowal, F.~Hutter,
+  A.~C.~F. Lopes, Challenges of real-world reinforcement learning: Definitions,
+  benchmarks and analysis, Machine Learning 110 (2021) 2419--2468.
+\newblock \href {https://doi.org/10.1007/s10994-021-05961-4}
+  {\path{doi:10.1007/s10994-021-05961-4}}.
+
+\bibitem{ashrae55}
+{ASHRAE}, {ANSI/ASHRAE} standard 55-2023: Thermal environmental conditions for
+  human occupancy, Tech. rep., American Society of Heating, Refrigerating and
+  Air-Conditioning Engineers, Atlanta, GA, USA (2023).
+
+\bibitem{stable_baselines3}
+A.~Raffin, A.~Hill, A.~Gleave, A.~Kanervisto, M.~Ernestus, N.~Dormann,
+  \href{http://jmlr.org/papers/v22/20-1364.html}{Stable-baselines3: Reliable
+  reinforcement learning implementations}, Journal of Machine Learning Research
+  22~(268) (2021) 1--8.
+\newline\urlprefix\url{http://jmlr.org/papers/v22/20-1364.html}
+
+\bibitem{deru2011doe}
+M.~Deru, K.~Field, D.~Studer, K.~Benne, B.~Griffith, P.~Torcellini, B.~Liu,
+  M.~Halverson, D.~Winiarski, M.~Rosenberg, {U.S. Department of Energy}
+  commercial reference building models of the national building stock, Tech.
+  Rep. NREL/TP-5500-46861, National Renewable Energy Laboratory (2011).
+\newblock \href {https://doi.org/10.2172/1009264} {\path{doi:10.2172/1009264}}.
+
+\bibitem{crawley2001energyplus}
+D.~B. Crawley, L.~K. Lawrie, F.~C. Winkelmann, W.~F. Buhl, Y.~J. Huang, C.~O.
+  Pedersen, R.~K. Strand, R.~J. Liesen, D.~E. Fisher, M.~J. Witte, J.~Glazer,
+  Energyplus: Creating a new-generation building energy simulation program,
+  Energy and Buildings 33~(4) (2001) 319--331.
+\newblock \href {https://doi.org/10.1016/S0378-7788(00)00114-6}
+  {\path{doi:10.1016/S0378-7788(00)00114-6}}.
+
+\bibitem{ashrae901}
+{ASHRAE}, {ANSI/ASHRAE/IES} standard 90.1-2022: Energy standard for sites and
+  buildings except low-rise residential buildings, Tech. rep., American Society
+  of Heating, Refrigerating and Air-Conditioning Engineers, Atlanta, GA, USA
+  (2022).
+
+\end{thebibliography}

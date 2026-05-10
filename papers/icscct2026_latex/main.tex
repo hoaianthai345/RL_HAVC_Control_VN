@@ -1,0 +1,395 @@
+\documentclass[11pt,a4paper]{article}
+
+% ICSCCT 2026 indicates Springer formatting and LNNS proceedings.
+% This file is a compile-ready draft scaffold. Before submission, transfer the
+% content into the official Springer proceedings template required by ICSCCT.
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0pt}
+\setlist[itemize]{leftmargin=1.4em}
+\setlist[enumerate]{leftmargin=1.6em}
+
+\title{Latency-Aware Edge--Cloud Reinforcement Learning for Sustainable HVAC Control}
+\author{Author names omitted for review}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Heating, ventilation, and air-conditioning (HVAC) systems account for a substantial share of building energy demand, making intelligent HVAC control an important component of sustainable computing and smart-building operation. Reinforcement learning (RL) can optimize sequential control policies, but many RL-based HVAC studies emphasize simulation rewards while under-reporting deployment constraints such as inference latency, cloud connectivity, policy staleness, and transfer across heterogeneous building/weather contexts. This paper proposes a latency-aware edge--cloud RL framework for sustainable HVAC control. The edge layer performs low-latency inference, safety-constrained action filtering, and telemetry collection, while the cloud or high-performance computing layer performs multi-context training, validation, and policy update scheduling. The experimental protocol compares static setpoint control, ASHRAE-style rules, trained Proximal Policy Optimization policies, edge-only deployment, cloud-only inference, and adaptive edge--cloud updating across multiple building/weather contexts. Energy use, comfort violation, action stability, transfer regret, adaptation gain, and p50/p95 inference latency are used as evaluation metrics. \textbf{No experimental results are reported in this draft; result and visualization sections are intentionally left as placeholders until validated experiments are completed.}
+\end{abstract}
+
+\textbf{Keywords:} sustainable computing; HVAC control; reinforcement learning; edge computing; cloud computing; smart buildings; latency-aware AI
+
+\section{Introduction}
+
+Buildings consume energy continuously to maintain thermal comfort, and HVAC operation is one of the main controllable loads in modern facilities. Improving HVAC control therefore contributes directly to sustainable computing and communication technologies: sensing, edge inference, cloud training, and data-driven decision support can reduce energy waste while preserving occupant comfort.
+
+Reinforcement learning has become a promising approach because an RL agent can learn a control policy from interaction data rather than relying only on fixed setpoint schedules or manually tuned rules. However, HVAC control is a cyber-physical problem, not only an offline optimization benchmark. A deployable controller must satisfy at least four requirements: energy efficiency, comfort preservation, real-time operation, and transfer under changing weather, occupancy, and building dynamics.
+
+Cloud-only inference simplifies model management but can be vulnerable to network latency and outages. Edge-only deployment lowers latency but can produce stale policies when operating conditions change. This motivates an edge--cloud split: the edge executes a validated policy close to the building, while the cloud or HPC layer retrains and validates candidate policies using larger compute capacity.
+
+This paper studies that architecture for sustainable HVAC control and defines an experiment plan that can be executed with the accompanying \texttt{experiments\_cloud} codebase after reproducibility fixes.
+
+\subsection{Contributions}
+
+The intended contributions are:
+\begin{enumerate}
+  \item a latency-aware edge--cloud architecture for RL-based HVAC control;
+  \item a reproducible experiment protocol covering energy, comfort, transfer, adaptation, and inference latency;
+  \item an evaluation plan for static, rule-based, PPO, edge-only, cloud-only, and adaptive edge--cloud controllers; and
+  \item a results-interpretation template for completing the final ICSCCT paper once experiments are available.
+\end{enumerate}
+
+\section{Related Work}
+
+\subsection{Reinforcement Learning for HVAC and Building Control}
+
+HVAC control can be modeled as a Markov decision process in which the controller observes building states and chooses setpoint actions. Proximal Policy Optimization (PPO) is widely used in continuous-control settings due to its clipped policy-gradient objective and practical training stability \cite{schulman2017ppo}. In HVAC control, PPO-like methods are attractive because setpoints are continuous or quasi-continuous and the controller must optimize long-horizon energy/comfort trade-offs.
+
+\subsection{Transfer Learning in Building-Control Benchmarks}
+
+Real buildings differ in construction, thermal mass, occupancy, equipment capacity, weather exposure, and operating schedules. A policy trained on one building/weather context may fail when deployed elsewhere. Public benchmarks such as HOT enable systematic transfer studies across many building scenarios instead of reporting results on a single hand-picked simulator \cite{berkes2025hot}. EnergyPlus remains a widely used simulation engine for detailed building energy modeling \cite{crawley2001energyplus}.
+
+\subsection{Edge--Cloud AI for Sustainable Cyber-Physical Systems}
+
+Edge--cloud AI separates latency-critical inference from compute-intensive training. In an HVAC context, edge deployment can run every control interval with low latency, while cloud/HPC infrastructure can periodically retrain policies on logged trajectories, evaluate candidates, and deploy updates. This structure aligns with sustainable computing goals because it uses communication and compute resources selectively rather than requiring continuous cloud-inference dependence.
+
+\section{System Model and Problem Formulation}
+
+\subsection{Building-Control Markov Decision Process}
+
+For each building context $c$, HVAC control is modeled as
+\begin{equation}
+\mathcal{M}_c = \langle \mathcal{S}, \mathcal{A}, P_c, R_c, \gamma \rangle,
+\end{equation}
+where $\mathcal{S}$ is the state space, $\mathcal{A}$ is the action space, $P_c$ is the context-conditioned transition function, $R_c$ is the reward function, and $\gamma$ is the discount factor.
+
+A representative state vector is
+\begin{equation}
+s_t = [T^{in}_t, T^{out}_t, H_t, O_t, E_{t-1}, \sin(2\pi h_t/24), \cos(2\pi h_t/24)],
+\end{equation}
+where $T^{in}$ is indoor temperature, $T^{out}$ is outdoor temperature, $H$ is humidity, $O$ is occupancy or schedule intensity, $E$ is recent HVAC energy, and $h_t$ is hour of day. The action is a pair of heating and cooling setpoints,
+\begin{equation}
+a_t = [T^{heat}_{sp,t}, T^{cool}_{sp,t}].
+\end{equation}
+
+The reward should penalize energy use, comfort deviation, unsafe actions, and abrupt setpoint changes:
+\begin{equation}
+r_t = -\left(w_e E_t + w_c D_t + w_v V_t + w_s \lVert a_t-a_{t-1}\rVert_1\right),
+\end{equation}
+where $D_t$ is temperature deviation from the comfort band and $V_t$ is a comfort-violation indicator.
+
+\subsection{Deployment-Aware Objective}
+
+The final evaluation should not rank controllers only by cumulative reward. A deployment-aware score is defined as
+\begin{equation}
+J = \alpha \bar{E} + \beta \bar{C} + \eta L_{95} + \lambda \bar{A},
+\end{equation}
+where $\bar{E}$ is normalized energy use, $\bar{C}$ is comfort-violation rate, $L_{95}$ is p95 inference or end-to-end latency, and $\bar{A}$ is mean action instability. Lower $J$ is better. Before final experiments, all terms must be normalized or justified to avoid arbitrary weighting.
+
+\section{Proposed Edge--Cloud RL Framework}
+
+\subsection{Edge Layer}
+
+The edge layer executes the real-time control loop: it receives sensor and context observations, normalizes the observation vector, runs local policy inference, applies safety constraints to setpoints, sends validated actions to the HVAC actuator or simulator, and logs observations, actions, reward components, latency, and safety events. The edge layer is responsible for low-latency operation and fail-safe fallback. If the learned policy is unavailable, unsafe, or stale, the edge should fall back to a rule-based controller.
+
+\subsection{Cloud/HPC Layer}
+
+The cloud or HPC layer performs multi-context PPO training, offline evaluation of candidate checkpoints, transfer analysis across source and target contexts, latency-aware deployment scoring, policy versioning, rollback, and periodic update scheduling.
+
+\subsection{Policy Update Rule}
+
+A candidate policy $\pi'$ should replace incumbent policy $\pi$ only if
+\begin{equation}
+J(\pi') < J(\pi) - \epsilon
+\end{equation}
+and comfort regression is bounded:
+\begin{equation}
+\bar{C}(\pi') \leq \bar{C}(\pi) + \delta.
+\end{equation}
+This prevents energy-only improvements that substantially worsen comfort.
+
+\section{Methodology}
+
+\subsection{Experimental Contexts}
+
+The current codebase defines four minimal contexts, shown in Table~\ref{tab:contexts}. These contexts are sufficient for smoke testing but weak for a final paper. The final study should expand to at least twelve contexts and five random seeds if compute permits.
+
+\begin{table}[ht]
+\centering
+\caption{Initial experimental contexts in the codebase.}
+\label{tab:contexts}
+\begin{tabularx}{\textwidth}{lYYY}
+\toprule
+Context ID & Building & Climate / shift & Transfer bucket \\
+\midrule
+\texttt{s1\_small\_office\_mild\_tmy} & OfficeSmall & mild TMY & source \\
+\texttt{s2\_small\_office\_mild\_amy} & OfficeSmall & mild variable weather & source \\
+\texttt{s3\_medium\_office\_hot\_humid} & OfficeMedium & hot-humid building/climate shift & target \\
+\texttt{s4\_school\_cold\_occupancy\_shift} & PrimarySchool & cold climate and occupancy shift & target \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Compared Methods}
+
+The final experiment should compare static setpoint control, ASHRAE-style rule control, single-context PPO, multi-context PPO, edge-only deployment, cloud-only inference, and adaptive edge--cloud deployment. The current codebase uses heuristic stand-ins for several PPO-named methods unless a trained policy checkpoint is supplied. Final paper experiments must not report those fallback outputs as RL results.
+
+\subsection{Metrics}
+
+Table~\ref{tab:metrics} summarizes the planned metrics.
+
+\begin{table}[ht]
+\centering
+\caption{Planned evaluation metrics.}
+\label{tab:metrics}
+\begin{tabularx}{\textwidth}{lYY}
+\toprule
+Metric & Definition & Direction \\
+\midrule
+Energy & Total or normalized HVAC energy per episode & lower is better \\
+Comfort violation rate & Fraction of steps outside the comfort band & lower is better \\
+Mean temperature deviation & Mean distance outside the comfort band & lower is better \\
+Cumulative reward & Sum of reward over an episode & higher is better \\
+Action instability & Mean action change magnitude & lower is better \\
+p50/p95 latency & Median and tail inference latency & lower is better \\
+Transfer regret & Energy gap against the best method in the same context/seed & lower is better \\
+Adaptation gain & Static-control energy minus adaptive-control energy & higher is better if comfort is not worse \\
+Deployment score & Normalized composite of energy, comfort, latency, and instability & lower is better \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Statistical Reporting}
+
+For each metric, report mean and 95\% confidence interval across seeds:
+\begin{equation}
+CI_{95} = 1.96 \frac{s}{\sqrt{n}},
+\end{equation}
+where $s$ is sample standard deviation and $n$ is the number of seeds. If $n<3$, the result should be marked as preliminary.
+
+\section{Results}
+\label{sec:results}
+
+\textbf{TODO: run validated experiments before filling this section. No experimental results are available yet.}
+
+\subsection{Control Performance}
+
+\begin{table}[ht]
+\centering
+\caption{Placeholder for control performance. Replace TODO values only with measured results.}
+\label{tab:control-results}
+\begin{tabular}{lrrrr}
+\toprule
+Method & Energy mean $\pm$ CI & Comfort mean $\pm$ CI & Deviation mean $\pm$ CI & Reward mean $\pm$ CI \\
+\midrule
+Static & TODO & TODO & TODO & TODO \\
+ASHRAE-style & TODO & TODO & TODO & TODO \\
+PPO-static & TODO & TODO & TODO & TODO \\
+PPO-multicontext & TODO & TODO & TODO & TODO \\
+Edge-only & TODO & TODO & TODO & TODO \\
+Cloud-only & TODO & TODO & TODO & TODO \\
+Edge--cloud adaptive & TODO & TODO & TODO & TODO \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Latency Performance}
+
+\begin{table}[ht]
+\centering
+\caption{Placeholder for latency performance. Replace TODO values only with measured results.}
+\label{tab:latency-results}
+\begin{tabular}{lrrrr}
+\toprule
+Method & p50 latency & p95 latency & Max latency & Notes \\
+\midrule
+Edge-only & TODO & TODO & TODO & TODO \\
+Cloud-only & TODO & TODO & TODO & TODO \\
+Edge--cloud adaptive & TODO & TODO & TODO & TODO \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Transfer and Adaptation}
+
+\begin{table}[ht]
+\centering
+\caption{Placeholder for transfer and adaptation metrics. Replace TODO values only with measured results.}
+\label{tab:transfer-results}
+\begin{tabular}{lrrrrr}
+\toprule
+Method & Source energy & Target energy & Target/source ratio & Regret & Adaptation gain \\
+\midrule
+Static & TODO & TODO & TODO & TODO & TODO \\
+PPO-static & TODO & TODO & TODO & TODO & TODO \\
+PPO-multicontext & TODO & TODO & TODO & TODO & TODO \\
+Edge--cloud adaptive & TODO & TODO & TODO & TODO & TODO \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Visualization}
+\label{sec:visualization}
+
+\textbf{TODO: create figures after experiments. No visualization is available yet.}
+
+Planned figures are listed below. Do not include final figures until their source CSV files and generation scripts are recorded.
+
+\begin{enumerate}
+  \item Edge--cloud control architecture: sensor, edge, cloud/HPC, and policy-update flow.
+  \item Energy versus comfort trade-off: scatter plot by method, context, and seed.
+  \item p50/p95 latency comparison: grouped bar chart for edge-only, cloud-only, and adaptive modes.
+  \item Transfer regret by target context: bar chart with confidence intervals.
+  \item Adaptation gain under shift: static versus adaptive comparison.
+  \item Example episode trace: indoor temperature, comfort band, and setpoints over time.
+\end{enumerate}
+
+\section{Discussion Template for Completed Results}
+
+After validated results are available, the discussion should address:
+\begin{enumerate}
+  \item whether energy reduction is achieved without comfort degradation;
+  \item whether p95 cloud latency materially changes the deployment score;
+  \item whether multi-context training lowers target-context regret compared with single-context PPO;
+  \item whether edge--cloud updates improve performance relative to static or edge-only deployment;
+  \item contexts where the proposed method fails or worsens comfort; and
+  \item sustainability implications supported only by measured data.
+\end{enumerate}
+
+\section{Experiment Plan for the Codebase}
+
+The following plan is based on the current audit of \texttt{experiments\_cloud}.
+
+\subsection{Phase 0: Reproducibility Fixes}
+
+Before running paper experiments, the codebase should be modified as follows:
+\begin{enumerate}
+  \item Use run-scoped outputs, e.g., \texttt{results/raw/<run\_name>/}, instead of aggregating every CSV in \texttt{results/raw}.
+  \item Require an explicit summary input directory or manifest and write \texttt{manifest.json} with raw files, command, timestamp, config hash, and code version.
+  \item Fail if RL-named methods run without trained checkpoints unless an explicit heuristic-proxy flag is provided.
+  \item Add policy provenance to result rows: policy path, SHA-256 hash, training run name, total timesteps, seed, environment mode, and checkpoint ID.
+  \item Implement and validate a concrete HOT/EnergyPlus adapter.
+  \item Reset or recreate the environment per method in the latency benchmark.
+  \item Add optional per-step trace logging under \texttt{results/traces/<run\_name>/}.
+\end{enumerate}
+
+\subsection{Phase 1: Local Dummy Validation}
+
+Dummy validation should verify the pipeline only; dummy results must not be used as paper evidence.
+
+\begin{verbatim}
+cd experiments_cloud
+source .venv/bin/activate
+python -m compileall -q src
+bash scripts/run_smoke.sh
+\end{verbatim}
+
+Expected validation: summaries include only the smoke run, warnings appear for heuristic proxies, trace files are produced when enabled, and no stale CSVs are included.
+
+\subsection{Phase 2: PPO Training Runs}
+
+Train single-context and multi-context PPO policies. Example commands:
+
+\begin{verbatim}
+python -m src.train_ppo \
+  --mode hot \
+  --context-index 0 \
+  --seed 1 \
+  --total-timesteps 200000 \
+  --run-name ppo_static_ctx0_seed1
+
+python -m src.train_ppo \
+  --mode hot \
+  --seed 1 \
+  --total-timesteps 500000 \
+  --run-name ppo_multicontext_seed1 \
+  --multi-context
+\end{verbatim}
+
+Repeat for seeds 1--5 if compute permits.
+
+\subsection{Phase 3: Control Evaluation Matrix}
+
+Evaluate all methods across contexts and seeds with trained checkpoints:
+
+\begin{verbatim}
+python -m src.experiment_runner \
+  --mode hot \
+  --methods static ashrae ppo_static ppo_multicontext edge_only cloud_only edge_cloud_adaptive \
+  --seeds 1 2 3 4 5 \
+  --episode-steps 288 \
+  --output-dir results/raw/final_hot_control \
+  --run-name final_hot_control \
+  --policy-path artifacts/policies/<validated_policy>.zip
+\end{verbatim}
+
+If separate checkpoints are needed per method, add method-specific policy-path configuration rather than a single global path.
+
+\subsection{Phase 4: Latency Evaluation}
+
+Run controller-only latency and deployment-latency experiments:
+
+\begin{verbatim}
+python -m src.latency \
+  --mode hot \
+  --methods edge_only cloud_only edge_cloud_adaptive \
+  --repetitions 1000 \
+  --warmup 100 \
+  --cloud-delay-ms 80 \
+  --output-dir results/raw/final_hot_latency \
+  --run-name final_hot_latency
+\end{verbatim}
+
+\subsection{Phase 5: Summary and Visualization Generation}
+
+Generate summaries only from validated run directories:
+
+\begin{verbatim}
+python -m src.summarize_results \
+  --input-dir results/raw/final_hot_control \
+  --output-dir results/summary/final_hot_control
+
+python -m src.summarize_results \
+  --input-dir results/raw/final_hot_latency \
+  --output-dir results/summary/final_hot_latency
+\end{verbatim}
+
+Then generate figures from those summary CSVs and record figure-generation scripts.
+
+\subsection{Phase 6: Final Writing}
+
+After results are generated, fill Tables~\ref{tab:control-results}--\ref{tab:transfer-results}, insert figures in Section~\ref{sec:visualization}, write the result interpretation, and add a limitations paragraph distinguishing HOT/simulation evidence from real deployment evidence.
+
+\section{Threats to Validity}
+
+The planned study has several threats to validity. First, simulation results may not capture all real HVAC actuator delays, sensor errors, maintenance constraints, or occupancy uncertainty. Second, heuristic fallback controllers must not be interpreted as trained RL policies. Third, deployment-score weights require normalization and sensitivity analysis. Fourth, simulated cloud delay should be replaced or supplemented by measured network latency before making deployment claims. Fifth, four contexts are insufficient for strong generalization claims; more buildings and weather profiles are needed.
+
+\section{Conclusion}
+
+This draft defines a sustainable HVAC-control study aligned with the ICSCCT 2026 theme of sustainable computing and communication technologies. The proposed edge--cloud RL framework separates low-latency control from cloud/HPC retraining and introduces a deployment-aware evaluation protocol. No quantitative result is reported at this stage. The next step is to fix the experiment pipeline, connect a validated HOT/EnergyPlus adapter, train real PPO policies, run the full control and latency matrix, and then fill the results, visualization, and discussion sections with measured evidence.
+
+\section*{Conference Formatting Note}
+
+The ICSCCT 2026 website states that submissions should follow Springer formatting and that accepted registered papers are planned for Springer Lecture Notes in Networks and Systems proceedings \cite{icscct2026submissions,icscct2026publications}. This draft is compile-ready for editing, but the final version should be transferred into the official Springer template required by the conference before submission.
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

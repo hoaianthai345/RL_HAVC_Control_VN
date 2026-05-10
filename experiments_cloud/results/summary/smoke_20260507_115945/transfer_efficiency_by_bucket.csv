@@ -1,0 +1,4 @@
+mode,method,transfer_efficiency_energy_target_over_source
+dummy,static,1.414829488747401
+dummy,ashrae,1.2128006801180933
+dummy,edge_cloud_adaptive,1.4113646617980102

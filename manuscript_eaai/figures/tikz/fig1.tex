@@ -1,0 +1,54 @@
+\documentclass[border=4pt,tikz]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric,fit,calc,backgrounds}
+\begin{document}
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    >={Stealth[length=2.2mm,width=1.6mm]},
+    box/.style    ={draw,rounded corners=2pt,minimum width=38mm,
+                    minimum height=10mm,align=center,line width=0.5pt,fill=white},
+    decision/.style={draw,diamond,aspect=2,align=center,inner sep=1pt,
+                    line width=0.5pt,fill=white},
+    flow/.style   ={->,line width=0.7pt,draw=black!75},
+    deploy/.style ={->,line width=0.7pt,draw=black!75,dashed},
+    panel/.style  ={draw=black!30,line width=0.4pt,rounded corners=2pt,inner sep=5mm},
+    lbl/.style    ={font=\sffamily\scriptsize\itshape,inner sep=2pt,fill=white}]
+
+  % EDGE column
+  \node[box] (sens) {Building sensors};
+  \node[box,below=7mm of sens] (inf)  {Policy inference\\\scriptsize PPO actor};
+  \node[box,below=7mm of inf]  (safe) {Safety guard};
+  \node[box,below=7mm of safe] (act)  {HVAC actuator};
+
+  % CLOUD column
+  \node[box,right=50mm of sens] (agg) {Trajectory aggregator};
+  \node[box,below=7mm of agg]   (tr)  {Multi-context PPO trainer};
+  \node[box,below=7mm of tr]    (ev)  {Policy evaluator};
+  \node[decision,below=7mm of ev] (dec) {$D_{\text{cand}} < D_{\text{cur}}$\\$\Delta V \le \epsilon$?};
+
+  % Edge internal flow
+  \draw[flow] (sens)--(inf);
+  \draw[flow] (inf)--(safe);
+  \draw[flow] (safe)--(act);
+
+  % Edge -> cloud
+  \draw[flow] (inf.east) -- node[lbl,above]{trajectory log} (agg.west);
+
+  % Cloud internal
+  \draw[flow] (agg)--(tr);
+  \draw[flow] (tr)--(ev);
+  \draw[flow] (ev)--(dec);
+
+  % Decision -> deploy back to edge (single clean L-shape, no crossing)
+  \draw[deploy] (dec.west) -- ++(-12mm,0)
+                |- node[lbl,above,pos=0.7]{deploy if accepted} (inf.east);
+
+  % Panels (background layer)
+  \begin{scope}[on background layer]
+    \node[panel,fit=(sens)(act),
+          label={[font=\sffamily\bfseries\small,yshift=1mm]above:Edge layer}] {};
+    \node[panel,fit=(agg)(dec),
+          label={[font=\sffamily\bfseries\small,yshift=1mm]above:Cloud / HPC layer}] {};
+  \end{scope}
+\end{tikzpicture}
+\end{document}

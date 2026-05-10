@@ -1,0 +1,81 @@
+# macOS / editor metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+experiments_cloud/.venv/
+
+# LaTeX build artifacts
+*.aux
+*.bbl-SAVE-ERROR
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+*.xdv
+*.ilg
+*.ind
+*.idx
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.ist
+texput.log
+
+# Keep final manuscript PDFs tracked intentionally.
+# Ignore local generated submission bundles.
+dist/
+*.tar.gz
+*.zip
+!experiments_cloud/artifacts/**/*.zip
+
+# Large/local data and run logs
+_dataset/
+dataset/
+experiments_cloud/data/
+experiments_cloud/logs/
+experiments_cloud/results/raw/
+experiments_cloud/results/results/
+experiments_cloud/artifacts/policies.broken*/
+experiments_cloud/artifacts/policies.tainted*/
+
+# Reference/archive material not needed for reproducibility
+Proposal/
+Ref/
+latex_ref/
+
+# Temporary generated mirrors
+experiments_cloud/manuscript_eaai/

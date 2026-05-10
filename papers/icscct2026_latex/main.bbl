@@ -1,0 +1,34 @@
+\begin{thebibliography}{1}
+
+\bibitem{icscct2026submissions}
+Icscct 2026 paper submissions.
+\newblock \url{https://icscct.com/paper-submissions/}.
+\newblock Accessed 2026-05-07.
+
+\bibitem{icscct2026publications}
+Icscct 2026 publications.
+\newblock \url{https://icscct.com/publications/}.
+\newblock Accessed 2026-05-07.
+
+\bibitem{berkes2025hot}
+Anais Berkes, Yoshua Bengio, David Rolnick, and Donna Vakalis.
+\newblock A hot dataset: 150,000 buildings for hvac operations transfer
+  research.
+\newblock In {\em Proceedings of the 12th ACM International Conference on
+  Systems for Energy-Efficient Buildings, Cities, and Transportation}, pages
+  171--180, Golden, CO, USA, 2025. ACM.
+
+\bibitem{crawley2001energyplus}
+Drury~B. Crawley, Linda~K. Lawrie, Frederick~C. Winkelmann, W.~F. Buhl, Y.~Joe
+  Huang, Curtis~O. Pedersen, Richard~K. Strand, Richard~J. Liesen, Daniel~E.
+  Fisher, Michael~J. Witte, and Jason Glazer.
+\newblock Energyplus: Creating a new-generation building energy simulation
+  program.
+\newblock {\em Energy and Buildings}, 33(4):319--331, 2001.
+
+\bibitem{schulman2017ppo}
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov.
+\newblock Proximal policy optimization algorithms.
+\newblock {\em arXiv preprint arXiv:1707.06347}, 2017.
+
+\end{thebibliography}

@@ -1,0 +1,55 @@
+# transfer_bucket supplies optional semantics for summarize_results.transfer_efficiency summaries.
+contexts:
+  - id: s1_small_office_mild_tmy
+    transfer_bucket: source
+    building: OfficeSmall
+    climate_zone: 4C
+    location: Seattle_USA
+    weather_type: TMY
+    occupancy_schedule: standard
+    thermal_scenario: default
+    shift_type: none
+    dummy:
+      climate_profile: mild
+      envelope_factor: 1.0
+      occupancy_scale: 1.0
+  - id: s2_small_office_mild_amy
+    transfer_bucket: source
+    building: OfficeSmall
+    climate_zone: 4C
+    location: Seattle_USA
+    weather_type: AMY_2018
+    occupancy_schedule: standard
+    thermal_scenario: default
+    shift_type: weather_shift
+    dummy:
+      climate_profile: mild_variable
+      envelope_factor: 1.0
+      occupancy_scale: 1.0
+  - id: s3_medium_office_hot_humid
+    transfer_bucket: target
+    building: OfficeMedium
+    climate_zone: 1A
+    location: HotHumid_Context
+    weather_type: TMY
+    occupancy_schedule: office
+    thermal_scenario: low_performance
+    shift_type: building_climate_shift
+    dummy:
+      climate_profile: hot_humid
+      envelope_factor: 1.35
+      occupancy_scale: 1.1
+  - id: s4_school_cold_occupancy_shift
+    transfer_bucket: target
+    building: PrimarySchool
+    climate_zone: 6A
+    location: Cold_Context
+    weather_type: TMY
+    occupancy_schedule: school_shifted
+    thermal_scenario: default
+    shift_type: building_occupancy_shift
+    dummy:
+      climate_profile: cold
+      envelope_factor: 1.15
+      occupancy_scale: 1.3
+

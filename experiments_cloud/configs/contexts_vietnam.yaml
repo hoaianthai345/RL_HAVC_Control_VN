@@ -1,0 +1,120 @@
+contexts:
+- id: vn_hcmc_officesmall_default
+  transfer_bucket: source
+  building: OfficeSmall
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: TMYx
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: none
+  hot:
+    epw_tmy: weather/base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_TMYx.epw
+    epw_amy_years: &id001
+    - weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2020.epw
+    - weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2021.epw
+    - weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2022.epw
+    - weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2023.epw
+    - weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2024.epw
+    model_file: processed/base/OfficeSmall__STD2013/OfficeSmall_STD2013_HoChiMinh.epJSON
+    epw_local: data/vietnam_hot/weather/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_TMYx.epw
+    model_local: data/vietnam_hot/buildings/OfficeSmall_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
+- id: vn_hcmc_apartmentmidrise_default
+  transfer_bucket: source
+  building: ApartmentMidRise
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: TMYx
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: none
+  hot:
+    epw_tmy: weather/base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_TMYx.epw
+    epw_amy_years: *id001
+    model_file: processed/base/ApartmentMidRise_STD2013/ApartmentMidRise_STD2013_HoChiMinh.epJSON
+    epw_local: data/vietnam_hot/weather/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_TMYx.epw
+    model_local: data/vietnam_hot/buildings/ApartmentMidRise_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
+- id: vn_hcmc_hotelsmall_default
+  transfer_bucket: target
+  building: HotelSmall
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: TMYx
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: none
+  hot:
+    epw_tmy: weather/base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_TMYx.epw
+    epw_amy_years: *id001
+    model_file: processed/base/HotelSmall_STD2013/HotelSmall_STD2013_HoChiMinh.epJSON
+    epw_local: data/vietnam_hot/weather/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_TMYx.epw
+    model_local: data/vietnam_hot/buildings/HotelSmall_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
+- id: vn_hcmc_schoolsecondary_default
+  transfer_bucket: target
+  building: SchoolSecondary
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: TMYx
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: none
+  hot:
+    epw_tmy: weather/base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_TMYx.epw
+    epw_amy_years: *id001
+    model_file: processed/base/SchoolSecondary_STD2013/SchoolSecondary_STD2013_HoChiMinh.epJSON
+    epw_local: data/vietnam_hot/weather/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_TMYx.epw
+    model_local: data/vietnam_hot/buildings/SchoolSecondary_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
+- id: vn_hcmc_apartmenthighrise_default
+  transfer_bucket: target
+  building: ApartmentHighRise
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: TMYx
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: none
+  hot:
+    epw_tmy: weather/base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_TMYx.epw
+    epw_amy_years: *id001
+    model_file: processed/base/ApartmentHighRise_STD2013/ApartmentHighRise_STD2013_HoChiMinh.epJSON
+    epw_local: data/vietnam_hot/weather/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_TMYx.epw
+    model_local: data/vietnam_hot/buildings/ApartmentHighRise_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
+- id: vn_hcmc_hotellarge_default
+  transfer_bucket: target
+  building: HotelLarge
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: TMYx
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: none
+  hot:
+    epw_tmy: weather/base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_TMYx.epw
+    epw_amy_years: *id001
+    model_file: processed/base/HotelLarge_STD2013/HotelLarge_STD2013_HoChiMinh.epJSON
+    epw_local: data/vietnam_hot/weather/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_TMYx.epw
+    model_local: data/vietnam_hot/buildings/HotelLarge_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0

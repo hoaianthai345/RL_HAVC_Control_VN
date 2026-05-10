@@ -1,0 +1,5 @@
+Edge-cloud RL framework for HVAC, evaluated on Vietnam multi-city protocol.
+Edge inference is 70,959x faster than cloud (p95 0.001ms vs 85ms).
+Multi-context PPO cuts comfort violations 4x but uses 59% more energy.
+Edge-cloud adaptive controller matches static energy with comfort parity.
+ASHRAE rule-based control fails in tropics: 80.6% comfort violation rate.

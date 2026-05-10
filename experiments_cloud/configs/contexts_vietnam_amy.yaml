@@ -1,0 +1,145 @@
+contexts:
+- id: vn_hcmc_officesmall_amy2022
+  transfer_bucket: source
+  building: OfficeSmall
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: AMY_2022
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: amy_2022
+  hot:
+    epw_file: data/vietnam_hot/weather/weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2022.epw
+    model_file: data/vietnam_hot/buildings/processed/base/OfficeSmall__STD2013/OfficeSmall_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
+- id: vn_hcmc_officesmall_amy2023
+  transfer_bucket: source
+  building: OfficeSmall
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: AMY_2023
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: amy_2023
+  hot:
+    epw_file: data/vietnam_hot/weather/weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2023.epw
+    model_file: data/vietnam_hot/buildings/processed/base/OfficeSmall__STD2013/OfficeSmall_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
+- id: vn_hcmc_officesmall_amy2024
+  transfer_bucket: source
+  building: OfficeSmall
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: AMY_2024
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: amy_2024
+  hot:
+    epw_file: data/vietnam_hot/weather/weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2024.epw
+    model_file: data/vietnam_hot/buildings/processed/base/OfficeSmall__STD2013/OfficeSmall_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
+- id: vn_hcmc_officemedium_amy2022
+  transfer_bucket: source
+  building: OfficeMedium
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: AMY_2022
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: amy_2022
+  hot:
+    epw_file: data/vietnam_hot/weather/weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2022.epw
+    model_file: data/vietnam_hot/buildings/processed/base/OfficeMedium_STD2013/OfficeMedium_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
+- id: vn_hcmc_officemedium_amy2023
+  transfer_bucket: source
+  building: OfficeMedium
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: AMY_2023
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: amy_2023
+  hot:
+    epw_file: data/vietnam_hot/weather/weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2023.epw
+    model_file: data/vietnam_hot/buildings/processed/base/OfficeMedium_STD2013/OfficeMedium_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
+- id: vn_hcmc_officemedium_amy2024
+  transfer_bucket: source
+  building: OfficeMedium
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: AMY_2024
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: amy_2024
+  hot:
+    epw_file: data/vietnam_hot/weather/weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2024.epw
+    model_file: data/vietnam_hot/buildings/processed/base/OfficeMedium_STD2013/OfficeMedium_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
+- id: vn_hcmc_hospital_amy2022
+  transfer_bucket: source
+  building: Hospital
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: AMY_2022
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: amy_2022
+  hot:
+    epw_file: data/vietnam_hot/weather/weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2022.epw
+    model_file: data/vietnam_hot/buildings/processed/base/Hospital_STD2013/Hospital_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
+- id: vn_hcmc_hospital_amy2023
+  transfer_bucket: source
+  building: Hospital
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: AMY_2023
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: amy_2023
+  hot:
+    epw_file: data/vietnam_hot/weather/weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2023.epw
+    model_file: data/vietnam_hot/buildings/processed/base/Hospital_STD2013/Hospital_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
+- id: vn_hcmc_hospital_amy2024
+  transfer_bucket: source
+  building: Hospital
+  climate_zone: 0A
+  location: HoChiMinh_Vietnam
+  weather_type: AMY_2024
+  occupancy_schedule: standard
+  thermal_scenario: default
+  shift_type: amy_2024
+  hot:
+    epw_file: data/vietnam_hot/weather/weather/real_base/VNM_SVN_Ho.Chi.Minh-Tan.Son.Nhat.Intl.AP.489000_AMY_2024.epw
+    model_file: data/vietnam_hot/buildings/processed/base/Hospital_STD2013/Hospital_STD2013_HoChiMinh.epJSON
+  dummy:
+    climate_profile: hot_humid
+    envelope_factor: 1.0
+    occupancy_scale: 1.0
